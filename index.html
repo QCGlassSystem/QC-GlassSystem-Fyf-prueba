@@ -7,12 +7,10 @@
 <style>
 body {
     font-family: Arial;
-    background-image: url("botellonas.jfif");
+    background-image: url("Ingaturuña/botellonas.jfif");
     background-size: cover;
     background-position: center;
-    color: white;
     text-align: center;
-    padding: 20px;
 }
 
 #logo {
@@ -26,7 +24,7 @@ h1 {
     color: black;
     background: rgba(255,255,255,0.7);
     display: inline-block;
-    padding: 10px 20px;
+    padding: 10px;
     border-radius: 10px;
 }
 
@@ -35,34 +33,25 @@ h1 {
     color: white;
 }
 
-#comentarios {
-    width: 320px;
-    height: 90px;
-    background: white;
-    color: black;
-    border-radius: 10px;
-    border: none;
+textarea {
+    width: 300px;
+    height: 80px;
 }
 
-select, button {
+button {
     padding: 10px;
     margin: 10px;
     border-radius: 10px;
     border: none;
 }
 
-button {
-    background: #00c896;
-    color: white;
-    cursor: pointer;
-}
-
 table {
     margin: auto;
     margin-top: 20px;
     border-collapse: collapse;
-    width: 100%;
+    width: 90%;
     background: rgba(0,0,0,0.7);
+    color: white;
 }
 
 th, td {
@@ -74,9 +63,11 @@ th, td {
 
 <body>
 
-<img src="LOGOFYF1.jfif" id="logo">
+<img src="Ingaturuña/LOGOFYF1.jfif" id="logo">
 
 <h1>Control de Calidad - Botellas</h1>
+
+<br>
 
 <select id="modelo">
 <option>Botella A</option>
@@ -108,15 +99,15 @@ th, td {
 </table>
 
 <script>
-const errores = {
 
+/* LISTA COMPLETA */
+const errores = {
 critico: [
 "Columpio","Contaminacion Interna","Costura Filosa","Desgolletada",
 "Despostilla en Corona","Filamento por Piston","Fractura Cuerpo",
 "Fractura Fondo","Rebaba en Exterior Corona","Rebaba en Interior Corona",
 "Vidrio Adherido Exterior","Vidrio Adherido Interior"
 ],
-
 mayor: [
 "Abombamiento","Ampolla","Angina","Bailarina","Check en Cuello",
 "Check en Cuerpo","Check en Fondo","Deformacion / Estructura",
@@ -133,7 +124,6 @@ mayor: [
 "Altura","Verticalidad","Gancho","Choque Termico",
 "Temple","Impacto"
 ],
-
 menor: [
 "Arañazo","Area de Contacto Corcho","Arruga de Carga",
 "Arruga de Lavadero","Bombillo Desviado","Burbuja",
@@ -144,32 +134,24 @@ menor: [
 "Piedra","Porosa","Punto Negro",
 "Raya por Bombillo Frio","Textura","Veta de Color"
 ]
-
 };
 
 let datos = JSON.parse(localStorage.getItem("datos")) || [];
 
-function normalizar(t){
-return t.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-}
-
 function detectarErrorYTipo(texto){
-let entrada = normalizar(texto);
+let entrada = texto.toLowerCase().trim();
 
-// EXACTO
 for(let tipo in errores){
 for(let item of errores[tipo]){
-if(normalizar(item) === entrada){
+if(item.toLowerCase() === entrada){
 return { error: item, tipo };
 }
 }
 }
 
-// PARCIAL CONTROLADO
 for(let tipo in errores){
 for(let item of errores[tipo]){
-let base = normalizar(item);
-if(entrada.includes(base) || base.includes(entrada)){
+if(entrada.includes(item.toLowerCase()) || item.toLowerCase().includes(entrada)){
 return { error: item, tipo };
 }
 }
@@ -178,25 +160,25 @@ return { error: item, tipo };
 return { error: texto, tipo: "no identificado" };
 }
 
-function separarErrorCantidad(texto){
+function separar(texto){
 let partes = texto.trim().split(" ");
-let posibleNumero = parseInt(partes[partes.length - 1]);
+let num = parseInt(partes[partes.length - 1]);
 
-if(!isNaN(posibleNumero)){
+if(!isNaN(num)){
 return {
 error: partes.slice(0, -1).join(" "),
-cantidad: posibleNumero
+cantidad: num
 };
 }
 
-return { error: texto, cantidad: 1 };
+return {error: texto, cantidad: 1};
 }
 
 function tiempo(){
 let a = new Date();
 return {
 fecha: a.toLocaleDateString('es-MX'),
-hora: a.toLocaleTimeString('es-MX', {hour12:false})
+hora: a.toLocaleTimeString('es-MX',{hour12:false})
 };
 }
 
@@ -207,11 +189,11 @@ let modelo = document.getElementById("modelo").value;
 if(!texto) return alert("Escribe errores");
 
 let lista = texto.split(",");
-let t = tiempo();
 
 lista.forEach(item=>{
-let {error, cantidad} = separarErrorCantidad(item);
+let {error, cantidad} = separar(item.trim());
 let resultado = detectarErrorYTipo(error);
+let t = tiempo();
 
 datos.push({
 fecha: t.fecha,
@@ -233,7 +215,7 @@ let tabla = document.getElementById("tabla");
 tabla.innerHTML="";
 
 datos.forEach(d=>{
-tabla.innerHTML+=`
+tabla.innerHTML += `
 <tr>
 <td>${d.fecha}</td>
 <td>${d.hora}</td>
@@ -267,6 +249,7 @@ a.click();
 }
 
 mostrar();
+
 </script>
 
 </body>
