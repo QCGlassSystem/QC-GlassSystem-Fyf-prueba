@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Control de Botellas</title>
+
+<style>
+body {
+    font-family: Arial;
+    background-image: url("botellonas.jfif");
+    background-size: cover;
+    background-position: center;
+    color: white;
+    text-align: center;
+    padding: 20px;
+}
+
+#logo {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    width: 120px;
+}
+
+h1 {
+    color: black;
+    background: rgba(255,255,255,0.7);
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 10px;
+}
+
+#modelo {
+    background: #007BFF;
+    color: white;
+}
+
+#comentarios {
+    width: 320px;
+    height: 90px;
+    background: white;
+    color: black;
+    border-radius: 10px;
+    border: none;
+}
+
+select, button {
+    padding: 10px;
+    margin: 10px;
+    border-radius: 10px;
+    border: none;
+}
+
+button {
+    background: #00c896;
+    color: white;
+    cursor: pointer;
+}
+
+table {
+    margin: auto;
+    margin-top: 20px;
+    border-collapse: collapse;
+    width: 100%;
+    background: rgba(0,0,0,0.7);
+}
+
+th, td {
+    border: 1px solid white;
+    padding: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<img src="LOGOFYF1.jfif" id="logo">
+
+<h1>Control de Calidad - Botellas</h1>
+
+<select id="modelo">
+<option>Botella A</option>
+<option>Botella B</option>
+</select>
+
+<br>
+
+<textarea id="comentarios" placeholder="Ej: Burbuja 5, Fractura Cuerpo 2"></textarea>
+
+<br>
+
+<button onclick="procesar()">Guardar</button>
+<button onclick="resetear()">Resetear</button>
+<button onclick="descargarExcel()">Excel</button>
+
+<table>
+<thead>
+<tr>
+<th>Fecha</th>
+<th>Hora</th>
+<th>Modelo</th>
+<th>Tipo</th>
+<th>Error</th>
+<th>Cantidad</th>
+</tr>
+</thead>
+<tbody id="tabla"></tbody>
+</table>
+
+<script>
+const errores = {
+
+critico: [
+"Columpio","Contaminacion Interna","Costura Filosa","Desgolletada",
+"Despostilla en Corona","Filamento por Piston","Fractura Cuerpo",
+"Fractura Fondo","Rebaba en Exterior Corona","Rebaba en Interior Corona",
+"Vidrio Adherido Exterior","Vidrio Adherido Interior"
+],
+
+mayor: [
+"Abombamiento","Ampolla","Angina","Bailarina","Check en Cuello",
+"Check en Cuerpo","Check en Fondo","Deformacion / Estructura",
+"Caras Hundidas","Corona Estrellada","Costuras Hundidas",
+"Despostillada Cuerpo","Efecto Lupa","Fondo Colgado",
+"Grabado Incorrecto o Inexistente","Labio Reventado",
+"Pico en Conexion","Capacidad Derrame","Capacidad Fuera de Tolerancia",
+"Dimension Hombro Mayor","Dimension Hombro Menor",
+"Dimension Cuerpo Mayor","Dimension Cuerpo Menor",
+"Dimension Talon Mayor","Dimension Talon Menor",
+"Ovalamiento","Diametro A","Diamentro C","Diametro T",
+"Espesor Hombro","Espesor Cuerpo","EspesorTalon",
+"Espesor de Fondo Maximo","Espesor de Fondo Minimo",
+"Altura","Verticalidad","Gancho","Choque Termico",
+"Temple","Impacto"
+],
+
+menor: [
+"Arañazo","Area de Contacto Corcho","Arruga de Carga",
+"Arruga de Lavadero","Bombillo Desviado","Burbuja",
+"Cascada","Crinolina","Distribucion en Fondo",
+"Golpe de Tubo","Grabado Desvanecido","Grieta de Carga",
+"Grieta de Presion","Hilo","Mancha Exterior",
+"Marca de Tijera","Obturador Desviado","Obturado Marcado",
+"Piedra","Porosa","Punto Negro",
+"Raya por Bombillo Frio","Textura","Veta de Color"
+]
+
+};
+
+let datos = JSON.parse(localStorage.getItem("datos")) || [];
+
+function normalizar(t){
+return t.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+}
+
+function detectarErrorYTipo(texto){
+let entrada = normalizar(texto);
+
+// EXACTO
+for(let tipo in errores){
+for(let item of errores[tipo]){
+if(normalizar(item) === entrada){
+return { error: item, tipo };
+}
+}
+}
+
+// PARCIAL CONTROLADO
+for(let tipo in errores){
+for(let item of errores[tipo]){
+let base = normalizar(item);
+if(entrada.includes(base) || base.includes(entrada)){
+return { error: item, tipo };
+}
+}
+}
+
+return { error: texto, tipo: "no identificado" };
+}
+
+function separarErrorCantidad(texto){
+let partes = texto.trim().split(" ");
+let posibleNumero = parseInt(partes[partes.length - 1]);
+
+if(!isNaN(posibleNumero)){
+return {
+error: partes.slice(0, -1).join(" "),
+cantidad: posibleNumero
+};
+}
+
+return { error: texto, cantidad: 1 };
+}
+
+function tiempo(){
+let a = new Date();
+return {
+fecha: a.toLocaleDateString('es-MX'),
+hora: a.toLocaleTimeString('es-MX', {hour12:false})
+};
+}
+
+function procesar(){
+let texto = document.getElementById("comentarios").value;
+let modelo = document.getElementById("modelo").value;
+
+if(!texto) return alert("Escribe errores");
+
+let lista = texto.split(",");
+let t = tiempo();
+
+lista.forEach(item=>{
+let {error, cantidad} = separarErrorCantidad(item);
+let resultado = detectarErrorYTipo(error);
+
+datos.push({
+fecha: t.fecha,
+hora: t.hora,
+modelo,
+tipo: resultado.tipo,
+error: resultado.error,
+cantidad
+});
+});
+
+localStorage.setItem("datos", JSON.stringify(datos));
+document.getElementById("comentarios").value="";
+mostrar();
+}
+
+function mostrar(){
+let tabla = document.getElementById("tabla");
+tabla.innerHTML="";
+
+datos.forEach(d=>{
+tabla.innerHTML+=`
+<tr>
+<td>${d.fecha}</td>
+<td>${d.hora}</td>
+<td>${d.modelo}</td>
+<td>${d.tipo}</td>
+<td>${d.error}</td>
+<td>${d.cantidad}</td>
+</tr>`;
+});
+}
+
+function resetear(){
+if(confirm("¿Borrar todo?")){
+datos=[];
+localStorage.removeItem("datos");
+mostrar();
+}
+}
+
+function descargarExcel(){
+let c="Fecha,Hora,Modelo,Tipo,Error,Cantidad\n";
+datos.forEach(d=>{
+c+=`${d.fecha},${d.hora},${d.modelo},${d.tipo},${d.error},${d.cantidad}\n`;
+});
+
+let blob=new Blob([c],{type:"text/csv"});
+let a=document.createElement("a");
+a.href=URL.createObjectURL(blob);
+a.download="reporte.csv";
+a.click();
+}
+
+mostrar();
+</script>
+
+</body>
+</html>
